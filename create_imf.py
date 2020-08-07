@@ -280,7 +280,8 @@ def get_stereo_lookup_table(start_date,end_date,**kwargs):
 
     # Set directory to save data.
     directory = '/home/tkeebler/MSWIM2D/data/STEREO{}'.format(spacecraft) ## UPDATE THIS LINE
-    dirdate = start_date.year + 1
+    if start_date.year == 2007: dirdate = start_date.year
+    else: dirdate = start_date.year + 1
 
     stereo_keys = ['Epoch',
                    'radialDistance','heliographicLatitude','heliographicLongitude', # in HGI: [AU],[deg],[deg]
@@ -421,21 +422,53 @@ def get_earth_ephemeris(start_date,end_date,**kwargs):
 
 
 # Make all L1 input lookup tables.
-for y in np.arange(2003, 2004, 1):
+#    valid for [1985, 2019]
+#    Note: usable data coverage begins in 1995
+for y in np.arange(1995, 2020, 1):
     get_l1_lookup_table(dt.datetime(year=y-1, month=11, day=1),
                         dt.datetime(year=y+1, month=1, day=31))
     print('########## L1_{} complete.#############'.format(y))
 
 # Make all STEREOA input lookup tables.
-for y in np.arange(2010, 2011, 1):
-    get_stereo_lookup_table(dt.datetime(year=y-1, month=11, day=1),
-                            dt.datetime(year=y+1, month=1, day=31),
+#    valid for [2007, 2019]
+for y in np.arange(2007, 2020, 1):
+    if y == 2007:
+        startmonth = 1
+        startyear = y
+    else:
+        startmonth = 11
+        startyear = y-1
+    if y == 2019:
+        endmonth = 12
+        endday = 1
+        endyear = y
+    else:
+        endmonth = 1
+        endday = 31
+        endyear = y+1
+    get_stereo_lookup_table(dt.datetime(year=startyear, month=startmonth, day=1),
+                            dt.datetime(year=endyear, month=endmonth, day=endday),
                             sc='A')
     print('########## STEREOA_{} complete.#############'.format(y))
     
 # Make all STEREOB input lookup tables.
-for y in np.arange(2014, 2015, 1):
-    get_stereo_lookup_table(dt.datetime(year=y-1, month=11, day=1),
-                        dt.datetime(year=y, month=9, day=1),
+#    valid for [2007, 2014]
+for y in np.arange(2007, 2015, 1):
+    if y == 2007:
+        startmonth = 1
+        startyear = y
+    else:
+        startmonth = 11
+        startyear = y-1
+    if y == 2014:
+        endmonth = 9
+        endday = 1
+        endyear = y
+    else:
+        endmonth = 1
+        endday = 31
+        endyear = y+1
+    get_stereo_lookup_table(dt.datetime(year=startyear, month=startmonth, day=1),
+                        dt.datetime(year=endyear, month=endmonth, day=endday),
                         Uniform=False, sc='B')
     print('########## STEREOB_{} complete.#############'.format(y))
