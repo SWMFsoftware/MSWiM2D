@@ -1,13 +1,6 @@
-*.mod
-*.o
-*.a
-*.diff
-*.exe
-*.in
-*.out
 *~
 *#
 
 BATSRUS/
-run*/
 data/
+Output/*
