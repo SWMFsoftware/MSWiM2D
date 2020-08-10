@@ -1,0 +1,152 @@
+ Config.pl -e=Mhd -u=OuterHelio2d -f -g=10,10,2 -debug
+
+#TEST
+CON_axes::init_axes
+
+#UPDATECHECK
+F			UseUpdateCheck
+
+#COMPONENT
+OH                      NameComp
+T                       UseComp
+
+#STARTTIME
+YYYY                    iYear
+1                       iMonth
+1                       iDay
+0                       iHour
+0                       iMinute
+0                       iSecond
+
+#LOOKUPTABLE
+SW1			NameTable
+load			NameCommand
+L1.dat			NameFile
+ascii			TypeFile
+
+#TIMEACCURATE
+F                       IsTimeAccurate
+
+#GRAVITY
+F                       UseGravity (rest of parameters read if true)
+0                       iDirGravity(0 - central, 1 - X, 2 - Y, 3 - Z direction)
+
+#BODY
+T                       UseBody (rest of parameters read if true)
+1.0                     rBody (normalized units)
+0.01                    BodyNDim(1) [/cc] number density for inner boundary
+1.09E5			BodyTDim(1) [K] temperature for inner boundary
+
+#NORMALIZATION
+OUTERHELIO
+
+#RESTARTOUTFILE
+one
+
+#PLOTFILENAME
+year                   NameMaxTimeUnit
+
+#GRID
+10                      nRootBlock1 (radial direction)
+10                      nRootBlock2 (longitude direction)
+2                       nRootBlock3 (latitude direction)
+-100.0                  xMin The box defined by xMin..ZMax should be larger than the radius of the spherical domain
+100.0                   xMax
+-100.0                  yMin
+100.0                   yMax
+-100.0                  zMin
+100.0                   zMax
+
+#GRIDBLOCKALL
+2000			MaxBlock (previously in Config.pl)
+
+#GRIDGEOMETRYLIMIT
+spherical_lnr           TypeGeometry
+1.0                     Coord1Min Radius
+75.0                    Coord1Max  (slightly larger than sqrt(2)*50)
+0.0                     Coord2Min Longitude
+360.0                   Coord2Max
+-1.0                    Coord3Min Latitude
+1.0                     Coord3Max
+
+#OUTERBOUNDARY
+none                    rmin
+outflow                 rmax
+periodic                phimin lonmin
+periodic                phimax lonmax
+float                   latmin
+float                   latmax
+
+#INNERBOUNDARY
+user                    SolarWindInput
+
+#SCHEME
+2                       nOrder
+Linde                   TypeFlux
+mc3                     TypeLimiter ! Only read for Order>1 and flux not Simple
+1.5                     BetaLimiter ! Only read if TypeLimiter is NOT 'minmod'
+
+#TIMESTEPPING
+2                       nStage (1 or 2)
+0.80                    CflExpl
+
+#NONCONSERVATIVE
+F                       UseNonConservative
+
+#SAVERESTART
+F                       DoSaveRestart
+100                     DnSaveRestart
+-1.0                    DtSaveRestart
+
+#SAVELOGFILE
+T                       DoSaveLogfile
+step date RAW           StringLogfile
+10                      DnSaveLogfile
+-1.                     DtSaveLogfile
+
+#USERSWITCH
++ic +init
+
+#USERINPUTBEGIN --------------------------------------------------------
+
+#SOLARWINDH     ! slow solar wind
+5.0             SWH_rho_dim [n/cc]
+1.0E5           SWH_T_dim [K]
+400.0           SWH_Ux_dim [km/s]
+0.0             SWH_Uy_dim [km/s]
+0.0             SWH_Uz_dim [km/s]
+5.0             SWH_Bx_dim [nT]
+0.0             SWH_By_dim [nT]
+0.0             SWH_Bz_dim [nT]
+
+#VLISW          ! fast solar wind
+0.06            VLISW_rho_dim [n/cc]
+6519.0          VLISW_T_dim
+26.3            VLISW_Ux_dim
+0.0             VLISW_Uy_dim
+-2.3            VLISW_Uz_dim
+0.4111          VLISW_Bx_dim
+-0.0748         VLISW_By_dim
+-0.1296         VLISW_Bz_dim
+
+#USERINPUTEND ----------------------------------------------------------
+
+#STOP
+500		MaxIteration
+-1.0		tSimulationMax
+
+#RUN ####################################################################
+
+#TIMEACCURATE
+T                       DoTimeAccurate
+
+#SAVEPLOT
+1                       nPlotFile
+z=0 MHD idl             StringPlot
+-1                      DnSavePlot
+1 hour                  DtSavePlot
+0.0                     DxSavePlot
+
+#STOP
+-1                      MaxIteretion
+1 year  		tSimulationMax
