@@ -59,7 +59,6 @@ load          NameCommand
 STEREOA.dat   NameFile
 ascii         TypeFile
 " if $StereoA;
-	}
 	    print $out "
 
 #LOOKUPTABLE
@@ -68,12 +67,12 @@ load          NameCommand
 STEREOB.dat   NameFile
 ascii         TypeFile
 " if $StereoB;
-
+	}
     }
     close $out;
     
     # Execute the code.
-    #qx(cd $rundir; mpiexec -n 2 ./BATSRUS.exe > runlog);
+    qx(cd $rundir; mpiexec -n 2 ./BATSRUS.exe > runlog);
 
     # Process the results.
     qx(rm -rf $output/$year);
