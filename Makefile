@@ -1,0 +1,25 @@
+# makefile for interpolation compilation
+
+default: interp
+
+include BATSRUS/Makefile.def
+include BATSRUS/Makefile.conf
+
+LIBDIR    = ${GMDIR}/src
+BINDIR    = ${GMDIR}/src
+SHAREDIR  = ${GMDIR}/share/Library/src
+
+COMPILER = gfortran
+LIBSHARE = ${LIBDIR}/libSHARE.a
+LINK.f90 = ${CUSTOMPATH_MPI}mpif90
+
+INTERP_OUTPUT.exe: ${LIBSHARE} Interpolate_Output.o
+	${LINK.f90} -o INTERP_OUTPUT.exe Interpolate_Output.o \
+	-L${LIBDIR} -lSHARE ${Lflag}
+
+interp:
+	make INTERP_OUTPUT.exe
+
+.PHONY: clean
+clean:
+	rm -f *~ *.o *.mod INTERP_OUTPUT.exe
