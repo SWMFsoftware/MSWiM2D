@@ -41,9 +41,10 @@ program interpolate_output
   character(len=500) :: StringHeader
   character(len=500) :: NameVar
   integer            :: nStep, nDim, nParam, nVar
+  logical            :: IsCartesian
   real(Real8_)              :: Time ! snapshot time
   real(Real8_)              :: Param_I(100) ! parameters
-  real(Real8_), allocatable :: Coord_DI(:,:), Var_VI(:,:) ! coordinate and data matrices
+  real(Real8_), allocatable :: Coord_DII(:,:,:), Var_VII(:,:,:) ! coordinate and data matrices
   integer :: n_D(0:3), n1, n2, n3
   integer :: i, TrajTimestamp ! loop indices
   real(Real8_), allocatable :: InterpData_VI(:,:) ! fully interpolated output
@@ -138,7 +139,8 @@ program interpolate_output
           NameVarOut = NameVar, &
           nStepOut = nStep, &
           TimeOut = Time, &       ! simulation time
-          nDimOut = nDim, &       ! number of dimensions, negative for curvilinear
+          nDimOut = nDim, &       ! number of dimensions
+          IsCartesianOut = IsCartesian, &
           nParamOut = nParam, &   ! number of parameters
           nVarOut = nVar, &       ! number of variables
           n1Out = n1, &           ! grid sizes
@@ -147,25 +149,27 @@ program interpolate_output
           nOut_D = n_D, &         ! nOut_D grid size array
           ParamOut_I = Param_I)   ! parameters
 
+     !write(*,*)'n1,n2,n3',n1,n2,n3
+     
      if(Time < TrajTime_I(1)) CYCLE  ! if before start of trajectory file
      if(Time > TrajTime_I(nPoints)) EXIT  ! if after end of trajectory file
 
      ! Create array to hold interpolated data.
      if(.not.allocated(InterpData_VI))then
         allocate(TimeOut_D(MaxSnapshot), InterpData_VI(nVar,MaxSnapshot), &
-             InterpCoord_DI(2,MaxSnapshot))
+             InterpCoord_DI(nDim,MaxSnapshot))
      endif
 
      ! Determine the shape of arrays from the header.
      !   Note: assumes no AMR/constant grid
-     if(.not. allocated(Coord_DI)) &
-          allocate(Coord_DI(nDim, n1), Var_VI(nVar, n1))
+     if(.not. allocated(Coord_DII)) &
+          allocate(Coord_DII(nDim, n1, n2), Var_VII(nVar, n1, n2))
 
      ! Read the data at the snapshot.
      call read_plot_file(NameFile=NameFileIn, iUnitIn=UnitIn, &
           TypeFileIn = TypeFileIn, &
-          CoordOut_DI = Coord_DI, &
-          VarOut_VI = Var_VI)
+          CoordOut_DII = Coord_DII, &
+          VarOut_VII = Var_VII)
      
      ! Interpolate location of trajectory file in time to snapshot.
      TrajTimestamp = 1
@@ -177,7 +181,7 @@ program interpolate_output
      else
         InterpCoord = interpolate_vector( &
              a_VC = Xy_DI(:,TrajTimestamp-1:TrajTimestamp), &
-             nVar = 2, &
+             nVar = nDim, &
              nDim = 1, &
              Min_D = [1], &
              Max_D = [2], &
@@ -185,18 +189,35 @@ program interpolate_output
              x1_I = TrajTime_I(TrajTimestamp-1:TrajTimestamp), &
              DoExtrapolate = .false.)
      endif
+
+     ! Convert coordinates to curvilinear.
+     if(.not.IsCartesian)then
+        InterpCoord = [sqrt(InterpCoord(1)**2 + InterpCoord(2)**2), &
+             atan2(InterpCoord(2), InterpCoord(1))]
+     endif
      
      ! Interpolate snapshot to trajectory location.
      InterpData_VI(:,i) = interpolate_vector( &
-          a_VC = Var_VI, &
+          a_VC = Var_VII, &
           nVar = nVar, &
           nDim = 2, &
           Min_D = [1,1], &
-          Max_D = [100,100], & ! This part is incorrect. Can it be read from .outs file?
+          Max_D = [n1,n2], &
           x_D = InterpCoord, &
-          x1_I = Coord_DI(1,:), &
-          x2_I = Coord_DI(2,:), &
+          x1_I = Coord_DII(1,:,1), & ! Incorrect indices?
+          x2_I = Coord_DII(2,:,1), & ! Incorrect indices?
           DoExtrapolate = .false.)
+
+     !if(i == 10)then
+     !   write(*,*)'InterpCoord',InterpCoord
+     !   write(*,*)'R:  '
+     !   write(*,*)minval(Coord_DII(1,:,1)),maxval(Coord_DII(1,:,1))
+     !   write(*,*)'Phi:  '
+     !   write(*,*)minval(Coord_DII(2,1,:)),maxval(Coord_DII(2,1,:))
+     !   !write(*,*)Coord_DII(2,:,1)
+     !   write(*,*)minval(Coord_DII(1,1,:)),maxval(Coord_DII(1,1,:))
+     !   write(*,*)Coord_DII(1,1,:)
+     !endif
 
      InterpCoord_DI(:,i) = InterpCoord ! possibly incorporate into above statements
      TimeOut_D(i) = Time
@@ -206,7 +227,7 @@ program interpolate_output
   
 
   close(UnitIn)
-  deallocate(Coord_DI, Var_VI)
+  deallocate(Coord_DII, Var_VII)
   
   !-------------------------------------------------------------------------------------
   !                              OUTPUT FILE
