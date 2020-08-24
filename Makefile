@@ -14,8 +14,8 @@ COMPILER = gfortran ${DOUBLEPREC}
 LIBSHARE = ${LIBDIR}/libSHARE.a
 LINK.f90 = ${CUSTOMPATH_MPI}mpif90
 
-INTERP_OUTPUT.exe: ${LIBSHARE} Interpolate_Output.o
-	${LINK.f90} -o INTERP_OUTPUT.exe Interpolate_Output.o \
+INTERP_OUTPUT.exe: ${LIBSHARE} interpolate_output.o
+	${LINK.f90} -o INTERP_OUTPUT.exe interpolate_output.o \
 	-L${LIBDIR} -lSHARE ${Lflag}
 
 interp:
