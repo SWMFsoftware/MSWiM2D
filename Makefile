@@ -9,7 +9,8 @@ LIBDIR    = ${GMDIR}/src
 BINDIR    = ${GMDIR}/src
 SHAREDIR  = ${GMDIR}/share/Library/src
 
-COMPILER = gfortran
+DOUBLEPREC = -frecord-marker=4 -fdefault-real-8 -fdefault-double-8
+COMPILER = gfortran ${DOUBLEPREC}
 LIBSHARE = ${LIBDIR}/libSHARE.a
 LINK.f90 = ${CUSTOMPATH_MPI}mpif90
 
