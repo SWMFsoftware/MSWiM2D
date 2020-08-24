@@ -8,11 +8,12 @@ program interpolate_output
   ! Read a *.outs IDL file of type ascii/real4/real8 and a satellite file,
   ! then interpolate the *.outs to the trajectory from the satellite file.
 
-  use ModIoUnit,     ONLY: io_unit_new
-  use ModPlotFile,   ONLY: read_plot_file
-  use ModTimeConvert,ONLY: time_int_to_real
-  use ModConst,      ONLY: cRadToDeg
-  use ModInterpolate,ONLY: interpolate_vector
+  use ModIoUnit,         ONLY: io_unit_new
+  use ModPlotFile,       ONLY: read_plot_file
+  use ModTimeConvert,    ONLY: time_int_to_real
+  use ModConst,          ONLY: cRadToDeg
+  use ModInterpolate,    ONLY: interpolate_vector
+  use ModCoordTransform, ONLY: atan2_check
   
   implicit none
 
@@ -51,6 +52,7 @@ program interpolate_output
   real :: InterpCoord_D(2) ! interpolated trajectory coordinates
   integer :: MaxSnapshot ! limit of snapshots in .outs file
   integer :: nSnapshots ! number of snapshots contained in .outs file
+  real :: RadMin,RadMax,PhiMin,PhiMax
 
   ! Interpolated File
   character(len=100) :: NameInterpFile ! name of desired output file
@@ -195,17 +197,24 @@ program interpolate_output
         ! Coordinates converted from [x,y] to [ln(r),phi]
         InterpCoord_D = [log(sqrt(InterpCoord_D(1)**2 + &
              InterpCoord_D(2)**2)), &
-             atan2(InterpCoord_D(2), InterpCoord_D(1))*cRadToDeg]
-        LogCoord_DII(1,:,:) = log(sqrt(Coord_DII(1,:,:)**2 + &
-             Coord_DII(2,:,:)**2))
-        LogCoord_DII(2,:,:) = atan2(Coord_DII(2,:,:), &
-             Coord_DII(1,:,:))*cRadToDeg
+             atan2_check(InterpCoord_D(2), InterpCoord_D(1))*cRadToDeg]
 
-        ! change domain to [0,360]
-        if(InterpCoord_D(2)<0) InterpCoord_D(2)=InterpCoord_D(2)+360
-        where(LogCoord_DII(2,:,:)<0)LogCoord_DII(2,:,:)=LogCoord_DII(2,:,:)+360
+        ! Use for non-uniform coords.
+        !LogCoord_DII(1,:,:) = log(sqrt(Coord_DII(1,:,:)**2 + &
+        !     Coord_DII(2,:,:)**2))
+        !LogCoord_DII(2,:,:) = atan2(Coord_DII(2,:,:), &
+        !     Coord_DII(1,:,:))*cRadToDeg
+
+        RadMin = log(sqrt(Coord_DII(1,1,1)**2+Coord_DII(2,1,1)**2))
+        RadMax = log(sqrt(Coord_DII(1,n1,n2)**2+Coord_DII(2,n1,n2)**2))
+        PhiMin = atan2_check(Coord_DII(2,1,1),Coord_DII(1,1,1))*cRadToDeg
+        PhiMax = atan2_check(Coord_DII(2,n1,n2),Coord_DII(1,n1,n2))*cRadToDeg
      endif
-     
+
+     ! Normalize coordinates.
+     InterpCoord_D(1) = InterpCoord_D(1)/(RadMax-RadMin)*n1
+     InterpCoord_D(2) = InterpCoord_D(2)/(PhiMax-PhiMin)*n2
+
      ! Interpolate snapshot to trajectory location.
      InterpData_VI(:,i) = interpolate_vector( &
           a_VC = Var_VII, & ! variable array
@@ -214,8 +223,8 @@ program interpolate_output
           Min_D = [1,1], &
           Max_D = [n1,n2], &
           x_D = InterpCoord_D, & ! desired position
-          x1_I = LogCoord_DII(1,:,1), &
-          x2_I = LogCoord_DII(2,1,:), &
+          !x1_I = LogCoord_DII(1,:,1), & ! use for non-normalized coords
+          !x2_I = LogCoord_DII(2,1,:), & ! use for non-normalized coords
           DoExtrapolate = .false.)
 
      InterpCoord_DI(:,i) = InterpCoord_D
