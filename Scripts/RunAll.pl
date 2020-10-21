@@ -29,10 +29,11 @@ if (-e $rundir and -d $rundir){
     qx(cd ./BATSRUS; make rundir COMPONENT=OH);
 }
 
+my $DaysInYear = 365;
 foreach my $year ($start_year..$end_year) 
 {
     print "Running $year...   ";
-
+    
     # Select correct data files.
     my $StereoA = ($year >= 2007 and $year <= 2019);
     my $StereoB = ($year >= 2007 and $year <= 2014);
@@ -43,6 +44,9 @@ foreach my $year ($start_year..$end_year)
 	if $StereoA;
     qx(gunzip -c data/STEREOB/STEREOB_$year\.dat > $rundir/STEREOB.dat) 
 	if $StereoB;
+
+    # Determine if leap year for simulation length.
+    $DaysInYear = 366 if not $year % 4;
     
     # Replace necessary text in PARAM.in file.
     open(my $in,  '<', "$input/PARAM.in") or die "Can't read old file: $!";
@@ -50,6 +54,7 @@ foreach my $year ($start_year..$end_year)
     while( <$in> )
     {
 	s/YYYY/$year/g;
+	s/DDD/$DaysInYear/g;
 	print $out $_;
       	if (/^ascii.*TypeFile$/){
 	    print $out "
