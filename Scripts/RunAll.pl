@@ -1,7 +1,8 @@
 #!/usr/bin/perl -s
 
-my $start_year = ($s or $start or 2000);
-my $end_year = ($e or $end or 2001);
+my $start_date = ($s or $start or "200001");
+my $end_date = ($e or $end or "200002");
+my $interval = ($i or $interval or "month");
 my $Help = ($h or 0);
 
 push @INC, ".";
@@ -14,6 +15,35 @@ my $gitclone = './BATSRUS/share/Scripts/gitclone -s';
 my $rundir = './BATSRUS/run';
 my $output = './Output';
 my $input  = './Input';
+my $earliest_date = 200001;
+my $earliest_year = 2000;
+my $start_year = int(substr($start_date,0,4));
+my $end_year = int(substr($end_date,0,4));
+my $start_month = int(substr($start_date,4,6));
+my $end_month = int(substr($end_date,4,6));
+
+# Make array of months to run.
+my @months_to_run = ();
+foreach my $year ($start_year..$end_year)
+{
+    foreach my $month (1..12)
+    {
+	if($start_year == $end_year){
+	    if($month >= $start_month and $month <= $end_month){
+		push(@months_to_run, sprintf("%04d%02d\n",$year,$month));
+	    }
+	}
+	elsif($year == $start_year){
+	    push(@months_to_run, sprintf("%04d%02d\n",$year,$month))if($month >= $start_month);
+	}
+	elsif($year == $end_year){
+	    push(@months_to_run, sprintf("%04d%02d\n",$year,$month))if($month <= $end_month);
+	}
+	else{
+	    push(@months_to_run, sprintf("%04d%02d\n",$year,$month));
+	}
+    }
+}    
 
 # Compile BATSRUS and PIDL; make run directory
 # add if statement to download BATSRUS if missing
@@ -29,10 +59,58 @@ if (-e $rundir and -d $rundir){
     qx(cd ./BATSRUS; make rundir COMPONENT=OH);
 }
 
-my $DaysInYear = 365;
-foreach my $year ($start_year..$end_year) 
+# Calculate simulation time from start of interval.
+my $end_sim_time = 0;
+my @restart_months = ();
+foreach my $year ($earliest_year..$start_year)
 {
-    print "Running $year...   ";
+    foreach my $month (1..12)
+    {
+	if ($year * 100 + $month < int($start_date))
+	{
+	    push(@restart_months, sprintf("%04d%02d\n",$year,$month));
+	}
+    }
+}
+foreach my $restart_month (@restart_months)
+{
+    my $year = int(substr($restart_month,0,4));
+    my $month = int(substr($restart_month,4,6));
+    $end_sim_time += 28 if $month == 2 and $year % 4;
+    $end_sim_time += 29 if $month == 2 and not $year % 4;
+    if($month == 4 or $month == 6 or $month == 9 or $month == 11)
+    {	
+	$end_sim_time += 30;
+    }
+    elsif($month != 2)
+    {
+	$end_sim_time += 31;
+    }
+}
+
+
+# Run simulation for every month.
+my $restart_date = 0;
+foreach my $month_string (@months_to_run)
+{
+    my $year = int(substr($month_string,0,4));
+    my $month = int(substr($month_string,4,6));
+    print "Running $year-$month...   ";
+
+    # Copy restart files.
+    if ($month_string != $earliest_date){
+	if($month != 1)
+	{
+	    $restart_date = sprintf("%04d%02d", $year, $month-1);
+	}
+	else
+	{
+	    $restart_date = sprintf("%04d%02d", $year-1, 12);
+	}
+	qx(cp $output/$restart_date/RESTART/OH/restart.H $rundir/restartIN/);
+	qx(cp $output/$restart_date/RESTART/OH/octree.rst $rundir/restartIN/);
+	qx(cp $output/$restart_date/RESTART/OH/data.rst $rundir/restartIN/);
+    }
     
     # Select correct data files.
     my $StereoA = ($year >= 2007 and $year <= 2019);
@@ -45,16 +123,28 @@ foreach my $year ($start_year..$end_year)
     qx(gunzip -c data/STEREOB/STEREOB_$year\.dat > $rundir/STEREOB.dat) 
 	if $StereoB;
 
-    # Determine if leap year for simulation length.
-    $DaysInYear = 366 if not $year % 4;
+    # Update ending simulation time.
+    $end_sim_time += 28 if $month == 2 and $year % 4;
+    $end_sim_time += 29 if $month == 2 and not $year % 4;
+    if($month == 4 or $month == 6 or $month == 9 or $month == 11)
+    {	
+	$end_sim_time += 30;
+    }
+    elsif($month != 2)
+    {
+	$end_sim_time += 31;
+    }
     
     # Replace necessary text in PARAM.in file.
-    open(my $in,  '<', "$input/PARAM.in") or die "Can't read old file: $!";
+    my $param_file = "PARAM.in";
+    $param_file = "PARAM.in.restart" if int($month_string) != $earliest_date;
+    open(my $in,  '<', "$input/$param_file") or die "Can't read old file: $!";
     open(my $out, '>', "$rundir/PARAM.in") or die "Can't write new file: $!";
     while( <$in> )
     {
 	s/YYYY/$year/g;
-	s/DDD/$DaysInYear/g;
+	s/MM/$month/g;
+	s/DDD/$end_sim_time/g;
 	print $out $_;
       	if (/^ascii.*TypeFile$/){
 	    print $out "
@@ -80,8 +170,8 @@ ascii         TypeFile
     qx(cd $rundir; mpiexec -n 2 ./BATSRUS.exe > runlog);
 
     # Process the results.
-    qx(rm -rf $output/$year);
-    qx(cd $rundir; ./PostProc.pl -M ../../$output/$year);
+    qx(rm -rf $output/$month_string);
+    qx(cd $rundir; ./PostProc.pl -M ../../$output/$month_string);
 
     # things will be removed by make clean and make cleanall
 
