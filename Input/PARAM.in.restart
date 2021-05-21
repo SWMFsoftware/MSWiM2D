@@ -1,7 +1,5 @@
- Config.pl -e=Mhd -u=OuterHelio2d -f -g=10,10,2 -debug
-
-#TEST
-CON_axes::init_axes		TestString
+#INCLUDE
+restartIN/restart.H
 
 #UPDATECHECK
 F			UseUpdateCheck
@@ -10,7 +8,7 @@ F			UseUpdateCheck
 OH			NameComp
 T			UseComp
 
-#STARTTIME
+STARTTIME
 YYYY			iYear
 MM			iMonth
 1			iDay
@@ -40,11 +38,11 @@ T			UseBody (rest of parameters read if true)
 #NORMALIZATION
 OUTERHELIO		TypeNormalization
 
-#RESTARTOUTFILE
-one			StringRestartOutFile
-
 #PLOTFILENAME
 year			NameMaxTimeUnit
+
+#RESTARTOUTFILE
+one                     StringRestartOutFile
 
 #GRID
 10			nRootBlock1 (radial direction)
@@ -93,17 +91,6 @@ mc3			TypeLimiter ! Only read for Order>1 and flux not Simple
 #NONCONSERVATIVE
 F			UseNonConservative
 
-SAVERESTART
-F			DoSaveRestart
-100			DnSaveRestart
--1.0			DtSaveRestart
-
-SAVELOGFILE
-T			DoSaveLogfile
-step date RAW		StringLogfile
-10			DnSaveLogfile
--1.			DtSaveLogfile
-
 #USERSWITCH
 +ic +init		StringSwitch
 
@@ -131,15 +118,6 @@ step date RAW		StringLogfile
 
 #USERINPUTEND -------------------------------------
 
-STOP
-500			MaxIteration
--1.0			tSimulationMax
-
-RUN ##########################################################################
-
-#TIMEACCURATE
-T			DoTimeAccurate
-
 #SAVEPLOTNAME
 F			UsePlotNameStep
 F			UsePlotNameTime
@@ -155,7 +133,7 @@ z=0 MHD idl_real4		StringPlot
 #SAVERESTART
 T			DoSaveRestart
 -1			DnSaveRestart
-0.5 days		DtSaveRestart
+1 days			DtSaveRestart
 
 #STOP
 -1			MaxIteration
