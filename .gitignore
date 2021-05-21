@@ -3,9 +3,12 @@
 *.out
 *.outs
 *.dat
+*.txt
+*.in
 *.exe
 *.o
 
 BATSRUS/
 data/
 Output/*
+Scripts/*
